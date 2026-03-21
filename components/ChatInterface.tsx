@@ -78,9 +78,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                         }
                         const data = await res.json();
                         if (data.status === "success") {
-                          alert(`✅ Gemini Connection Success!\n\nResponse: ${data.response}\n\nKey Info:\n- Masked: ${data.keyInfo.masked}\n- Length: ${data.keyInfo.length}\n- StartsWithAIza: ${data.keyInfo.startsWithAIza}\n- IsValidASCII: ${data.keyInfo.isAscii}`);
+                          alert(`✅ Connection Success!\n\nAI Response: ${data.response}\n\nDB Status: ${data.mongoInfo.status}\n\nKey Info:\n- Masked: ${data.keyInfo.masked}\n- Length: ${data.keyInfo.length}\n- StartsWithAIza: ${data.keyInfo.startsWithAIza}\n- IsValidASCII: ${data.keyInfo.isAscii}`);
                         } else {
-                          alert(`❌ Gemini Connection Failed: ${data.message}\n\nKey Info:\n- Masked: ${data.keyInfo.masked}\n- Length: ${data.keyInfo.length}\n- Exists: ${data.keyInfo.exists}\n- IsValidASCII: ${data.keyInfo.isAscii}\n\nDetails: ${JSON.stringify(data.details)}`);
+                          alert(`❌ Connection Failed!\n\nAI Error: ${data.message}\n\nDB Status: ${data.mongoInfo.status}\nDB Error: ${data.mongoInfo.error || "None"}\n\nKey Info:\n- Masked: ${data.keyInfo.masked}\n- Length: ${data.keyInfo.length}\n- Exists: ${data.keyInfo.exists}\n- IsValidASCII: ${data.keyInfo.isAscii}\n\nDetails: ${JSON.stringify(data.details)}`);
                         }
                       } catch (e: any) {
                         alert("Test Request Failed: " + e.message);

@@ -23,6 +23,11 @@ async function getDb() {
       throw new Error("MONGODB_URI is missing. Please add it to your Vercel Environment Variables.");
     }
 
+    // Check for common mistake: forgetting to replace <password>
+    if (uri.includes("<password>")) {
+      throw new Error("MONGODB_URI_ERROR: Kamu lupa mengganti '<password>' dengan password asli kamu di Vercel Environment Variables.");
+    }
+
     if (!dbClient) {
       dbClient = new MongoClient(uri, {
         connectTimeoutMS: 5000,
@@ -91,9 +96,19 @@ app.get("/api/test-gemini", async (req, res) => {
     isAscii: /^[\x00-\x7F]*$/.test(apiKey)
   };
 
+  // Diagnostic for MongoDB too
+  let mongoInfo = { status: "unchecked", error: null };
+  try {
+    const db = await getDb();
+    await db.command({ ping: 1 });
+    mongoInfo.status = "connected";
+  } catch (e: any) {
+    mongoInfo.status = "failed";
+    mongoInfo.error = e.message;
+  }
+
   try {
     const ai = getGemini();
-    // Try with a very simple prompt
     const result = await ai.models.generateContent({
       model: "gemini-2.5-flash", 
       contents: "Hello, are you working?",
@@ -102,7 +117,8 @@ app.get("/api/test-gemini", async (req, res) => {
     return res.status(200).json({ 
       status: "success", 
       response: result.text || "No response text",
-      keyInfo
+      keyInfo,
+      mongoInfo
     });
   } catch (error: any) {
     console.error("Gemini Test Error:", error);
@@ -110,7 +126,8 @@ app.get("/api/test-gemini", async (req, res) => {
       status: "error", 
       message: error.message || "Unknown error",
       details: error.stack || "No stack trace",
-      keyInfo
+      keyInfo,
+      mongoInfo
     });
   }
 });
