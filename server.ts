@@ -1,0 +1,185 @@
+import express from "express";
+import { MongoClient } from "mongodb";
+import { GoogleGenAI } from "@google/genai";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// MongoDB Setup
+const uri = process.env.MONGODB_URI || "";
+const dbName = process.env.MONGODB_DB_NAME || "blokm_bites";
+const collectionName = process.env.MONGODB_COLLECTION || "tenants";
+
+let dbClient: MongoClient | null = null;
+
+async function getDb() {
+  try {
+    if (!uri) {
+      console.error("MONGODB_URI is not defined in environment variables.");
+      return null;
+    }
+
+    if (!dbClient) {
+      dbClient = new MongoClient(uri, {
+        connectTimeoutMS: 10000,
+        socketTimeoutMS: 45000,
+        serverSelectionTimeoutMS: 10000,
+      });
+      await dbClient.connect();
+      console.log("Successfully connected to MongoDB");
+    } else {
+      // Check if connection is still alive
+      try {
+        await dbClient.db(dbName).command({ ping: 1 });
+      } catch (e) {
+        console.warn("MongoDB connection lost, attempting to reconnect...");
+        dbClient = new MongoClient(uri);
+        await dbClient.connect();
+      }
+    }
+    return dbClient.db(dbName);
+  } catch (error: any) {
+    console.error("MongoDB Connection Error Details:", {
+      message: error.message,
+      code: error.code,
+      name: error.name,
+      codeName: error.codeName
+    });
+    
+    if (error.message.includes("authentication failed") || error.code === 18) {
+      throw new Error("MONGODB_AUTH_FAILED: Username or password in MONGODB_URI is incorrect. Please check your credentials in Settings > Secrets.");
+    }
+    
+    dbClient = null; // Reset client on failure
+    throw error;
+  }
+}
+
+app.use(express.json());
+
+// Gemini Setup
+const getGemini = () => {
+  const apiKey = process.env.GEMINI_API_KEY || "";
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY is missing");
+  }
+  return new GoogleGenAI({ apiKey });
+};
+
+// API Routes
+app.post("/api/chat", async (req, res) => {
+  try {
+    const { message, tenants, location } = req.body;
+    const ai = getGemini();
+    
+    const tenantContext = (tenants && tenants.length > 0)
+      ? `\n\n**VERIFIED TENANT LIST (With Details):**\n${tenants.map((t: any) => `- ${t.name}: Type: ${t.category}. Origin: ${t.subcategory}. Keywords: ${t.keywords}. Address: ${t.address || "N/A"}. Map: ${t.mapsUrl || "Use Google Maps tool"}`).join('\n')}`
+      : "";
+
+    const systemInstruction = `
+**CRITICAL: LANGUAGE MATCHING**
+1. You MUST respond in the same language as the user's input. 
+2. If the user speaks English, you speak English. 
+3. If the user speaks Indonesian, you speak Indonesian.
+4. This is your HIGHEST priority rule.
+
+You are a specialized Food & Beverage Guide for Blok M, Jakarta.
+
+**CRITICAL RULE: DATABASE FIRST**
+1. You have a "VERIFIED TENANT LIST" provided below. This is your primary source of truth.
+2. If a user asks for a recommendation, you MUST search the VERIFIED TENANT LIST first.
+3. **KEYWORD MATCHING:** Use the "Category" (Type of place), "Subcategory" (Origin of food), and "Keywords" fields from the database to match and sort the most relevant recommendations.
+4. ONLY if you cannot find a suitable match in the database, you may use the **googleSearch** tool to find other popular spots in Blok M.
+5. If you use information from the database, state that it is a "Verified Local Spot".
+6. **RECOMMENDATION LIMIT:** Provide a maximum of 3 spots per recommendation UNLESS the user explicitly asks for more.
+
+**MANDATORY LOCATION RULES:**
+1. **STRICT BLOK M ONLY:** You are a guide ONLY for Blok M, Jakarta. NEVER recommend or provide map links for branches located in other areas.
+2. **FULL DETAILED ADDRESS:** Whenever you recommend a place, you MUST provide its **complete, detailed address** (Street name, Number, Building/Mall name, Floor/Unit if applicable) and a link to Google Maps.
+3. **LANDMARKS:** Include nearby landmarks to help the user find the spot (e.g., "Dekat pintu MRT Blok M", "Di dalam M Bloc Space seberang supermarket").
+4. If the place is in the Verified Tenant List, use that exact address and map link.
+5. If it's NOT in the list, use the **googleSearch** tool to find its exact location. **BE SPECIFIC:** Search for "[Place Name] Blok M Melawai Jakarta" to ensure you get the correct branch and the most accurate address.
+6. **LINK FORMAT:** Always provide full web URLs (starting with https://). Avoid deep links like "intent://" or "google.navigation:".
+7. **MAP LIMIT:** Never trigger a broad map search that returns more than 3 distinct locations. If you recommend 3 spots, search for them individually or very precisely.
+8. When providing directions, mention how far it is from the user's current location (Lat: ${location?.latitude || "Unknown"}, Lng: ${location?.longitude || "Unknown"}).
+
+**TONE:** Maintain a "Jakarta local, casual, and efficient" vibe regardless of the language used. If speaking English, use a friendly, local expat or savvy local guide tone.
+${tenantContext}`;
+
+    const chat = ai.chats.create({
+      model: "gemini-3-flash-preview",
+      config: {
+        systemInstruction,
+        tools: [{ googleSearch: {} }],
+        toolConfig: location ? {
+          retrievalConfig: {
+            latLng: {
+              latitude: location.latitude,
+              longitude: location.longitude
+            }
+          }
+        } : undefined,
+        temperature: 0.6,
+      }
+    });
+
+    const result = await chat.sendMessage({ message });
+    res.json({ 
+      text: result.text,
+      groundingMetadata: result.candidates?.[0]?.groundingMetadata 
+    });
+  } catch (error: any) {
+    console.error("Gemini Server Error:", error);
+    res.status(500).json({ error: error.message || "Failed to communicate with Gemini" });
+  }
+});
+
+app.get("/api/tenants", async (req, res) => {
+  try {
+    const db = await getDb();
+    if (!db) {
+      return res.status(500).json({ 
+        error: "Database connection not established. Check MONGODB_URI.",
+        details: "URI is missing or invalid."
+      });
+    }
+    const tenants = await db.collection(collectionName).find({}).toArray();
+    res.json(tenants);
+  } catch (error: any) {
+    console.error("MongoDB API Error:", error);
+    res.status(500).json({ 
+      error: "Database Error", 
+      message: error.message,
+      isAuthError: error.message.includes("MONGODB_AUTH_FAILED")
+    });
+  }
+});
+
+// Vite middleware for development
+if (process.env.NODE_ENV !== "production") {
+  const { createServer: createViteServer } = await import("vite");
+  const vite = await createViteServer({
+    server: { middlewareMode: true },
+    appType: "spa",
+  });
+  app.use(vite.middlewares);
+} else {
+  const distPath = path.join(process.cwd(), 'dist');
+  app.use(express.static(distPath));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
+
+if (process.env.NODE_ENV !== "production") {
+  app.listen(Number(PORT), "0.0.0.0", () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;

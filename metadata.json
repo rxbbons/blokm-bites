@@ -1,0 +1,7 @@
+{
+  "name": "Blok M Bites",
+  "description": "A conversational AI assistant to cure decision fatigue for food and beverages in Blok M, Jakarta.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
