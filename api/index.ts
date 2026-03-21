@@ -2,10 +2,6 @@ import express from "express";
 import { MongoClient } from "mongodb";
 import { GoogleGenAI } from "@google/genai";
 import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -61,6 +57,11 @@ async function getDb() {
 }
 
 app.use(express.json());
+
+// Health check
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", env: process.env.NODE_ENV });
+});
 
 // Gemini Setup
 const getGemini = () => {
@@ -170,11 +171,24 @@ if (process.env.NODE_ENV !== "production") {
   app.use(vite.middlewares);
 } else {
   const distPath = path.join(process.cwd(), 'dist');
+  console.log("Serving static files from:", distPath);
   app.use(express.static(distPath));
   app.get('*', (req, res) => {
-    res.sendFile(path.join(distPath, 'index.html'));
+    const indexPath = path.join(distPath, 'index.html');
+    res.sendFile(indexPath, (err) => {
+      if (err) {
+        console.error("Error sending index.html:", err);
+        res.status(404).send("Frontend build not found. Please ensure 'npm run build' was executed.");
+      }
+    });
   });
 }
+
+// Error handler
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error("Unhandled Error:", err);
+  res.status(500).json({ error: "Internal Server Error", message: err.message });
+});
 
 if (process.env.NODE_ENV !== "production") {
   app.listen(Number(PORT), "0.0.0.0", () => {
