@@ -249,7 +249,7 @@ if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
 } else if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
   const distPath = path.join(process.cwd(), 'dist');
   app.use(express.static(distPath));
-  app.get('*', (req, res) => {
+  app.get('*all', (req, res) => {
     res.sendFile(path.join(distPath, 'index.html'), (err) => {
       if (err) {
         res.status(404).send("Frontend build not found.");
