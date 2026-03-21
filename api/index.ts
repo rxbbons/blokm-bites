@@ -78,50 +78,22 @@ app.get("/api/health", (req, res) => {
 // Test Gemini Connection
 app.get("/api/test-gemini", async (req, res) => {
   try {
-    const apiKey = process.env.GEMINI_API_KEY || "";
-    const sanitizedKey = apiKey.trim().replace(/^["']|["']$/g, '');
-    const isAscii = /^[\x00-\x7F]*$/.test(sanitizedKey);
-    const masked = sanitizedKey.length > 8 
-      ? `${sanitizedKey.substring(0, 4)}...${sanitizedKey.substring(sanitizedKey.length - 4)}`
-      : "Invalid Length";
-    
     const ai = getGemini();
     const result = await ai.models.generateContent({
-      model: "gemini-1.5-flash", // Using a very stable model for testing
-      contents: "Hello",
+      model: "gemini-2.5-flash", 
+      contents: "Hello, are you working?",
     });
     
     res.json({ 
       status: "success", 
-      response: result.text,
-      keyInfo: {
-        length: sanitizedKey.length,
-        startsWithAIza: sanitizedKey.startsWith("AIza"),
-        envRawLength: apiKey.length,
-        isAscii,
-        masked
-      }
+      response: result.text
     });
   } catch (error: any) {
-    const apiKey = process.env.GEMINI_API_KEY || "";
-    const sanitizedKey = apiKey.trim().replace(/^["']|["']$/g, '');
-    const isAscii = /^[\x00-\x7F]*$/.test(sanitizedKey);
-    const masked = sanitizedKey.length > 8 
-      ? `${sanitizedKey.substring(0, 4)}...${sanitizedKey.substring(sanitizedKey.length - 4)}`
-      : "Invalid Length";
-
     console.error("Gemini Test Error:", error);
     res.status(500).json({ 
       status: "error", 
       message: error.message,
-      keyInfo: {
-        length: sanitizedKey.length,
-        envRawLength: apiKey.length,
-        exists: !!apiKey,
-        isAscii,
-        masked
-      },
-      details: error.response?.data || error.stack
+      details: error.stack
     });
   }
 });
@@ -134,27 +106,9 @@ const getGemini = () => {
   // Sanitize key (remove quotes and whitespace)
   apiKey = apiKey.trim().replace(/^["']|["']$/g, '');
 
-  if (!apiKey || apiKey === "MY_GEMINI_API_KEY") {
+  if (!apiKey || apiKey === "MY_GEMINI_API_KEY" || apiKey === "") {
     console.error("GEMINI_API_KEY is missing or using placeholder");
-    throw new Error("GEMINI_API_KEY is still using the placeholder 'MY_GEMINI_API_KEY'. Please update it in the Settings menu (top right) -> Secrets/Environment Variables with your real API Key from AI Studio.");
-  }
-  
-  console.log(`GEMINI_API_KEY type: ${typeof apiKey}, length: ${apiKey.length}`);
-  
-  // Common mistake: Swapping MongoDB URI with Gemini Key
-  if (apiKey.startsWith("mongodb")) {
-    throw new Error("GEMINI_API_KEY appears to be a MongoDB URI. Please check your Vercel Environment Variables and ensure GEMINI_API_KEY is a valid Google API Key (starts with 'AIza').");
-  }
-
-  // Log masked key for debugging (only first 4 and last 4 chars)
-  const maskedKey = apiKey.length > 8 
-    ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`
-    : "Invalid Length";
-  
-  console.log(`Gemini API Key Debug: Length=${apiKey.length}, Masked=${maskedKey}`);
-  
-  if (!apiKey.startsWith("AIza")) {
-    console.warn(`Warning: Gemini API Key does not start with 'AIza'. Using: ${maskedKey}`);
+    throw new Error("API Key Gemini tidak ditemukan. Silakan tambahkan 'KUNCI_GEMINI_BARU' di Settings > Secrets.");
   }
   
   return new GoogleGenAI({ apiKey });
@@ -201,7 +155,7 @@ You are a specialized Food & Beverage Guide for Blok M, Jakarta.
 ${tenantContext}`;
 
     const chat = ai.chats.create({
-      model: "gemini-2.5-flash-latest",
+      model: "gemini-2.5-flash",
       config: {
         systemInstruction,
         tools: [{ googleSearch: {} }],
