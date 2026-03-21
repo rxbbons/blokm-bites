@@ -201,7 +201,7 @@ You are a specialized Food & Beverage Guide for Blok M, Jakarta.
 ${tenantContext}`;
 
     const chat = ai.chats.create({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.5-flash-latest",
       config: {
         systemInstruction,
         tools: [{ googleSearch: {} }],
