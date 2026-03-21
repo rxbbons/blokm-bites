@@ -7,15 +7,16 @@ export class DatabaseService {
       const response = await fetch('/api/tenants');
       
       if (!response.ok) {
-        throw new Error("Database connection failed. Please check your MONGODB_URI in settings.");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Database connection failed. Check your MONGODB_URI in Vercel.");
       }
       
       const data = await response.json();
       return data || [];
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("MongoDB Fetch Error:", error);
-      return []; // Return empty array instead of fallback data
+      throw error; // Throw error to be caught by App.tsx
     }
   }
 }

@@ -7,7 +7,10 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // MongoDB Setup
-const uri = process.env.MONGODB_URI || "";
+let uri = process.env.MONGODB_URI || "";
+// Sanitize URI (remove quotes and whitespace)
+uri = uri.trim().replace(/^["']|["']$/g, '');
+
 const dbName = process.env.MONGODB_DB_NAME || "blokm_bites";
 const collectionName = process.env.MONGODB_COLLECTION || "tenants";
 
@@ -17,7 +20,7 @@ async function getDb() {
   try {
     if (!uri) {
       console.error("MONGODB_URI is not defined in environment variables.");
-      return null;
+      throw new Error("MONGODB_URI is missing. Please add it to your Vercel Environment Variables.");
     }
 
     if (!dbClient) {
@@ -60,15 +63,100 @@ app.use(express.json());
 
 // Health check
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", env: process.env.NODE_ENV });
+  res.json({ 
+    status: "ok", 
+    env: process.env.NODE_ENV,
+    config: {
+      hasMongoUri: !!process.env.MONGODB_URI,
+      hasGeminiKey: !!process.env.GEMINI_API_KEY,
+      dbName: dbName,
+      collection: collectionName
+    }
+  });
+});
+
+// Test Gemini Connection
+app.get("/api/test-gemini", async (req, res) => {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY || "";
+    const sanitizedKey = apiKey.trim().replace(/^["']|["']$/g, '');
+    const isAscii = /^[\x00-\x7F]*$/.test(sanitizedKey);
+    const masked = sanitizedKey.length > 8 
+      ? `${sanitizedKey.substring(0, 4)}...${sanitizedKey.substring(sanitizedKey.length - 4)}`
+      : "Invalid Length";
+    
+    const ai = getGemini();
+    const result = await ai.models.generateContent({
+      model: "gemini-1.5-flash", // Using a very stable model for testing
+      contents: "Hello",
+    });
+    
+    res.json({ 
+      status: "success", 
+      response: result.text,
+      keyInfo: {
+        length: sanitizedKey.length,
+        startsWithAIza: sanitizedKey.startsWith("AIza"),
+        envRawLength: apiKey.length,
+        isAscii,
+        masked
+      }
+    });
+  } catch (error: any) {
+    const apiKey = process.env.GEMINI_API_KEY || "";
+    const sanitizedKey = apiKey.trim().replace(/^["']|["']$/g, '');
+    const isAscii = /^[\x00-\x7F]*$/.test(sanitizedKey);
+    const masked = sanitizedKey.length > 8 
+      ? `${sanitizedKey.substring(0, 4)}...${sanitizedKey.substring(sanitizedKey.length - 4)}`
+      : "Invalid Length";
+
+    console.error("Gemini Test Error:", error);
+    res.status(500).json({ 
+      status: "error", 
+      message: error.message,
+      keyInfo: {
+        length: sanitizedKey.length,
+        envRawLength: apiKey.length,
+        exists: !!apiKey,
+        isAscii,
+        masked
+      },
+      details: error.response?.data || error.stack
+    });
+  }
 });
 
 // Gemini Setup
 const getGemini = () => {
-  const apiKey = process.env.GEMINI_API_KEY || "";
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is missing");
+  // Priority check for the new custom secret to bypass stuck platform keys
+  let apiKey = process.env.KUNCI_GEMINI_BARU || process.env.GEMINI_API_KEY || "";
+  
+  // Sanitize key (remove quotes and whitespace)
+  apiKey = apiKey.trim().replace(/^["']|["']$/g, '');
+
+  if (!apiKey || apiKey === "MY_GEMINI_API_KEY") {
+    console.error("GEMINI_API_KEY is missing or using placeholder");
+    throw new Error("GEMINI_API_KEY is still using the placeholder 'MY_GEMINI_API_KEY'. Please update it in the Settings menu (top right) -> Secrets/Environment Variables with your real API Key from AI Studio.");
   }
+  
+  console.log(`GEMINI_API_KEY type: ${typeof apiKey}, length: ${apiKey.length}`);
+  
+  // Common mistake: Swapping MongoDB URI with Gemini Key
+  if (apiKey.startsWith("mongodb")) {
+    throw new Error("GEMINI_API_KEY appears to be a MongoDB URI. Please check your Vercel Environment Variables and ensure GEMINI_API_KEY is a valid Google API Key (starts with 'AIza').");
+  }
+
+  // Log masked key for debugging (only first 4 and last 4 chars)
+  const maskedKey = apiKey.length > 8 
+    ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`
+    : "Invalid Length";
+  
+  console.log(`Gemini API Key Debug: Length=${apiKey.length}, Masked=${maskedKey}`);
+  
+  if (!apiKey.startsWith("AIza")) {
+    console.warn(`Warning: Gemini API Key does not start with 'AIza'. Using: ${maskedKey}`);
+  }
+  
   return new GoogleGenAI({ apiKey });
 };
 
@@ -113,7 +201,7 @@ You are a specialized Food & Beverage Guide for Blok M, Jakarta.
 ${tenantContext}`;
 
     const chat = ai.chats.create({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.5-flash",
       config: {
         systemInstruction,
         tools: [{ googleSearch: {} }],

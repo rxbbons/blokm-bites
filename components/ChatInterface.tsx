@@ -49,23 +49,44 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
               </div>
             </div>
           )}
-
-          {error && (
-              <div className="flex justify-center my-4">
-                  <div className="bg-red-50 text-red-600 text-sm px-4 py-2 rounded-lg border border-red-100 shadow-sm">
-                      {error}
-                  </div>
-              </div>
-          )}
           
           <div ref={messagesEndRef} className="h-4" />
         </div>
       </div>
 
       {/* Floating Input Section */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-white via-white via-80% to-transparent pt-12 pb-6 px-4">
-        <div className="max-w-3xl mx-auto flex flex-col gap-3">
+      <div className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-white via-white via-90% to-transparent pt-12 pb-6 px-4 pointer-events-none">
+        <div className="max-w-3xl mx-auto flex flex-col gap-3 pointer-events-auto">
           
+          {/* Error Message & Test Button */}
+          {error && (
+              <div className="flex flex-col items-center gap-2 mb-2 animate-slide-up">
+                  <div className="bg-red-50 text-red-600 text-[11px] px-3 py-2 rounded-lg border border-red-100 shadow-sm w-full text-center font-medium">
+                      {error}
+                  </div>
+                  <button 
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      try {
+                        const res = await fetch("/api/test-gemini");
+                        const data = await res.json();
+                        if (data.status === "success") {
+                          alert(`✅ Gemini Connection Success!\n\nResponse: ${data.response}\n\nKey Info:\n- Masked: ${data.keyInfo.masked}\n- Length: ${data.keyInfo.length}\n- StartsWithAIza: ${data.keyInfo.startsWithAIza}\n- IsValidASCII: ${data.keyInfo.isAscii}`);
+                        } else {
+                          alert(`❌ Gemini Connection Failed: ${data.message}\n\nKey Info:\n- Masked: ${data.keyInfo.masked}\n- Length: ${data.keyInfo.length}\n- Exists: ${data.keyInfo.exists}\n- IsValidASCII: ${data.keyInfo.isAscii}\n\nDetails: ${JSON.stringify(data.details)}`);
+                        }
+                      } catch (e: any) {
+                        alert("Test Request Failed: " + e.message);
+                      }
+                    }}
+                    className="text-[10px] bg-red-600 text-white px-4 py-1.5 rounded-full hover:bg-red-700 transition-all shadow-md font-bold uppercase tracking-wider active:scale-95 cursor-pointer relative z-50"
+                  >
+                    Test API Connection
+                  </button>
+              </div>
+          )}
+
           {/* Main Input */}
           <InputArea onSend={onSendMessage} isLoading={isLoading} />
 

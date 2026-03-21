@@ -42,8 +42,13 @@ export default function App() {
         geminiServiceRef.current!.setTenants(tenants);
         setTenantCount(tenants.length);
         setDbStatus('synced');
-      } catch (e) {
+      } catch (e: any) {
+        console.error("Init Error:", e);
         setDbStatus('error');
+        setChatState(prev => ({
+          ...prev,
+          error: `Database Error: ${e.message}. Please check your Vercel Environment Variables.`
+        }));
       }
     };
 
@@ -117,10 +122,16 @@ export default function App() {
 
     } catch (err: any) {
       console.error("Chat error:", err);
+      let errorMsg = err.message || "Failed to connect to AI.";
+      
+      if (errorMsg.includes("API key not valid") || errorMsg.includes("API_KEY_INVALID")) {
+        errorMsg = "⚠️ API Key Error: Please check your Vercel Environment Variables. Ensure GEMINI_API_KEY is copied exactly from AI Studio Settings > Secrets.";
+      }
+
       setChatState(prev => ({ 
         ...prev, 
         isLoading: false, 
-        error: err.message || "Failed to connect to AI." 
+        error: errorMsg
       }));
     }
   };
