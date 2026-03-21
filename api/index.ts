@@ -193,26 +193,23 @@ ${tenantContext}`;
       config: {
         systemInstruction,
         tools: [{ googleSearch: {} }],
-        toolConfig: location ? {
-          retrievalConfig: {
-            latLng: {
-              latitude: location.latitude,
-              longitude: location.longitude
-            }
-          }
-        } : undefined,
         temperature: 0.6,
       }
     });
 
     const result = await chat.sendMessage({ message });
-    res.json({ 
+    return res.status(200).json({ 
       text: result.text,
       groundingMetadata: result.candidates?.[0]?.groundingMetadata 
     });
   } catch (error: any) {
     console.error("Gemini Server Error:", error);
-    res.status(500).json({ error: error.message || "Failed to communicate with Gemini" });
+    // Ensure we ALWAYS return JSON to avoid "Unexpected token A" (HTML) errors
+    return res.status(200).json({ 
+      error: error.message || "Failed to communicate with Gemini",
+      isError: true,
+      text: "Maaf, sepertinya ada gangguan koneksi ke AI. Coba lagi sebentar ya! 🙏"
+    });
   }
 });
 

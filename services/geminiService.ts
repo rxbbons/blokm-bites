@@ -41,6 +41,10 @@ export class GeminiService {
 
       const data = await response.json();
       
+      if (data.isError) {
+        throw new Error(data.error || "Gemini API Error");
+      }
+      
       // Since we are not streaming from the server yet for simplicity, 
       // we just yield the whole result as one "chunk"
       yield { 
