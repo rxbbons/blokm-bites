@@ -25,9 +25,9 @@ async function getDb() {
 
     if (!dbClient) {
       dbClient = new MongoClient(uri, {
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 45000,
-        serverSelectionTimeoutMS: 10000,
+        connectTimeoutMS: 5000,
+        socketTimeoutMS: 30000,
+        serverSelectionTimeoutMS: 5000,
       });
       await dbClient.connect();
       console.log("Successfully connected to MongoDB");
@@ -37,7 +37,10 @@ async function getDb() {
         await dbClient.db(dbName).command({ ping: 1 });
       } catch (e) {
         console.warn("MongoDB connection lost, attempting to reconnect...");
-        dbClient = new MongoClient(uri);
+        dbClient = new MongoClient(uri, {
+          connectTimeoutMS: 5000,
+          serverSelectionTimeoutMS: 5000,
+        });
         await dbClient.connect();
       }
     }
@@ -77,23 +80,37 @@ app.get("/api/health", (req, res) => {
 
 // Test Gemini Connection
 app.get("/api/test-gemini", async (req, res) => {
+  let apiKey = process.env.KUNCI_GEMINI_BARU || process.env.GEMINI_API_KEY || "";
+  apiKey = apiKey.trim().replace(/^["']|["']$/g, '');
+  
+  const keyInfo = {
+    exists: !!apiKey,
+    length: apiKey.length,
+    masked: apiKey ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}` : "None",
+    startsWithAIza: apiKey.startsWith("AIza"),
+    isAscii: /^[\x00-\x7F]*$/.test(apiKey)
+  };
+
   try {
     const ai = getGemini();
+    // Try with a very simple prompt
     const result = await ai.models.generateContent({
       model: "gemini-2.5-flash", 
       contents: "Hello, are you working?",
     });
     
-    res.json({ 
+    return res.status(200).json({ 
       status: "success", 
-      response: result.text
+      response: result.text || "No response text",
+      keyInfo
     });
   } catch (error: any) {
     console.error("Gemini Test Error:", error);
-    res.status(500).json({ 
+    return res.status(200).json({ 
       status: "error", 
-      message: error.message,
-      details: error.stack
+      message: error.message || "Unknown error",
+      details: error.stack || "No stack trace",
+      keyInfo
     });
   }
 });
@@ -203,24 +220,25 @@ app.get("/api/tenants", async (req, res) => {
   }
 });
 
-// Vite middleware for development
-if (process.env.NODE_ENV !== "production") {
-  const { createServer: createViteServer } = await import("vite");
-  const vite = await createViteServer({
-    server: { middlewareMode: true },
-    appType: "spa",
-  });
-  app.use(vite.middlewares);
-} else {
+// Vite middleware for development - ONLY in local dev
+if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
+  try {
+    const { createServer: createViteServer } = await import("vite");
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: "spa",
+    });
+    app.use(vite.middlewares);
+  } catch (e) {
+    console.warn("Vite middleware failed to load (expected in production)");
+  }
+} else if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
   const distPath = path.join(process.cwd(), 'dist');
-  console.log("Serving static files from:", distPath);
   app.use(express.static(distPath));
   app.get('*', (req, res) => {
-    const indexPath = path.join(distPath, 'index.html');
-    res.sendFile(indexPath, (err) => {
+    res.sendFile(path.join(distPath, 'index.html'), (err) => {
       if (err) {
-        console.error("Error sending index.html:", err);
-        res.status(404).send("Frontend build not found. Please ensure 'npm run build' was executed.");
+        res.status(404).send("Frontend build not found.");
       }
     });
   });

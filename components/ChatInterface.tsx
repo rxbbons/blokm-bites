@@ -70,6 +70,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       e.stopPropagation();
                       try {
                         const res = await fetch("/api/test-gemini");
+                        const contentType = res.headers.get("content-type");
+                        if (!contentType || !contentType.includes("application/json")) {
+                          const text = await res.text();
+                          alert(`❌ Server Error (HTML Response):\n\n${text.substring(0, 300)}...\n\nThis usually means the Vercel Serverless Function crashed. Check Vercel Logs.`);
+                          return;
+                        }
                         const data = await res.json();
                         if (data.status === "success") {
                           alert(`✅ Gemini Connection Success!\n\nResponse: ${data.response}\n\nKey Info:\n- Masked: ${data.keyInfo.masked}\n- Length: ${data.keyInfo.length}\n- StartsWithAIza: ${data.keyInfo.startsWithAIza}\n- IsValidASCII: ${data.keyInfo.isAscii}`);
