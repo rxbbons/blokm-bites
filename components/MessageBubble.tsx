@@ -67,11 +67,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                     : `${rawTitle} (Blok M)`;
                   
                   // Ensure we have a valid web URL for navigation
-                  let destinationUrl = chunk.maps?.uri || chunk.web?.uri || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rawTitle + " Blok M Jakarta")}`;
+                  let destinationUrl = chunk.maps?.uri || chunk.web?.uri || "";
                   
-                  // Fix potential deep links that don't work in browser
-                  if (destinationUrl.startsWith('intent://') || destinationUrl.startsWith('google.navigation:')) {
-                    destinationUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(title)}`;
+                  // Fix potential deep links or non-https links that don't work in browser
+                  if (destinationUrl && (
+                    destinationUrl.startsWith('intent://') || 
+                    destinationUrl.startsWith('google.navigation:') || 
+                    destinationUrl.startsWith('comgooglemaps:') ||
+                    !destinationUrl.startsWith('http')
+                  )) {
+                    destinationUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rawTitle + " Blok M Jakarta")}`;
+                  }
+                  
+                  // If still empty, fallback to a search link
+                  if (!destinationUrl) {
+                    destinationUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rawTitle + " Blok M Jakarta")}`;
                   }
 
                   // Ensure the embed query is extremely specific to Blok M Melawai

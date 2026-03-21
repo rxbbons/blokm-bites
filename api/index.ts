@@ -191,8 +191,13 @@ ${tenantContext}`;
     const chat = ai.chats.create({
       model: "gemini-2.5-flash",
       config: {
-        systemInstruction,
-        tools: [{ googleSearch: {} }],
+        systemInstruction: systemInstruction + `
+**MAPS & LINKS RULE:**
+1. When recommending a place NOT in your verified list, use the **googleMaps** or **googleSearch** tools.
+2. DO NOT hallucinate URLs. If you don't have a verified URL, don't provide one in the text.
+3. Rely on the automated "Verified Location" cards that appear below your message for map links.
+4. If you must provide a link in text, ensure it is a valid https:// link from your tool output.`,
+        tools: [{ googleSearch: {} }, { googleMaps: {} }],
         temperature: 0.6,
       }
     });
