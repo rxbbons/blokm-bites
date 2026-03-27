@@ -2,9 +2,26 @@ import express from "express";
 import { MongoClient } from "mongodb";
 import { GoogleGenAI } from "@google/genai";
 import path from "path";
+import LanguageDetect from 'languagedetect';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+const lngDetector = new LanguageDetect();
+
+const detectLanguage = (text: string): "en" | "id" => {
+  const detections = lngDetector.detect(text, 5);
+  const isIndonesian = detections.some(d => d[0] === 'indonesian' && d[1] > 0.1);
+  const isEnglish = detections.some(d => d[0] === 'english' && d[1] > 0.1);
+  
+  // Heuristic backup for short messages
+  const idKeywords = ["di", "ke", "yang", "ada", "ini", "itu", "saya", "kamu", "mau", "makan", "dimana", "apa", "halo", "makasih", "gak", "banget", "dong", "sih", "nih", "kok", "ya"];
+  const words = text.toLowerCase().split(/\s+/);
+  const hasIdKeyword = words.some(w => idKeywords.includes(w));
+  
+  if (isIndonesian || (hasIdKeyword && !isEnglish)) return "id";
+  return "en";
+};
 
 // MongoDB Setup
 let uri = process.env.MONGODB_URI || "";
@@ -109,10 +126,24 @@ app.get("/api/test-gemini", async (req, res) => {
 
   try {
     const ai = getGemini();
-    const result = await ai.models.generateContent({
-      model: "gemini-2.5-flash", 
-      contents: "Hello, are you working?",
-    });
+    
+    // Simple retry for test route too
+    let result;
+    let lastError;
+    for (let i = 0; i < 2; i++) {
+      try {
+        result = await ai.models.generateContent({
+          model: "gemini-2.5-flash", 
+          contents: "Hello, are you working?",
+        });
+        break;
+      } catch (e) {
+        lastError = e;
+        if (i === 0) await new Promise(r => setTimeout(r, 1000));
+      }
+    }
+
+    if (!result) throw lastError;
     
     return res.status(200).json({ 
       status: "success", 
@@ -151,58 +182,143 @@ const getGemini = () => {
 // API Routes
 app.post("/api/chat", async (req, res) => {
   try {
-    const { message, tenants, location } = req.body;
+    const { message, tenants, location, history } = req.body;
     const ai = getGemini();
     
-    const tenantContext = (tenants && tenants.length > 0)
-      ? `\n\n**VERIFIED TENANT LIST (With Details):**\n${tenants.map((t: any) => `- ${t.name}: Type: ${t.category}. Origin: ${t.subcategory}. Keywords: ${t.keywords}. Address: ${t.address || "N/A"}. Map: ${t.mapsUrl || "Use Google Maps tool"}`).join('\n')}`
+    console.log(`Chat request received. Message: "${message}". Tenants in DB: ${tenants?.length || 0}. History length: ${history?.length || 0}`);
+    
+    // Filter history to ensure it's valid for Gemini (must start with 'user')
+    let validHistory = [];
+    if (Array.isArray(history) && history.length > 0) {
+      // Find the first 'user' message
+      const firstUserIndex = history.findIndex((h: any) => h.role === 'user');
+      if (firstUserIndex !== -1) {
+        validHistory = history.slice(firstUserIndex);
+      }
+    }
+
+    // Filter tenants based on relevance to the user's message
+    const userMessageLower = message.toLowerCase();
+    const userWords = userMessageLower.split(/\s+/).filter(w => w.length >= 2); // Include 2+ char words (e.g., "es", "mi")
+    
+    const relevantTenants = (tenants || [])
+      .filter((t: any) => {
+        const name = (t.name || "").toLowerCase();
+        const category = (t.category || "").toLowerCase();
+        const keywords = Array.isArray(t.keywords) 
+          ? t.keywords.join(" ").toLowerCase() 
+          : (t.keywords || "").toLowerCase();
+
+        // Check if the entire message is in fields (original logic)
+        const directMatch = name.includes(userMessageLower) || 
+                           category.includes(userMessageLower) || 
+                           keywords.includes(userMessageLower);
+        
+        if (directMatch) return true;
+
+        // Check if any significant word from user message matches
+        const wordMatch = userWords.some(word => 
+          name.includes(word) || 
+          category.includes(word) || 
+          keywords.includes(word)
+        );
+
+        return wordMatch;
+      })
+      .slice(0, 20); // Increased limit for better AI context
+
+    console.log(`Relevant tenants found: ${relevantTenants.length}`);
+
+    // If no relevant tenants found, provide a general sample of 10
+    const limitedTenants = relevantTenants.length > 0 ? relevantTenants : (tenants || []).slice(0, 10);
+    
+    const tenantContext = (limitedTenants.length > 0)
+      ? `\n\n**BLOK M DATABASE (PRIORITY):**\n${limitedTenants.map((t: any) => `- ${t.name} (${t.category}): ${t.keywords}`).join('\n')}`
       : "";
 
     const systemInstruction = `
-**CRITICAL: LANGUAGE MATCHING**
-1. You MUST respond in the same language as the user's input. 
-2. If the user speaks English, you speak English. 
-3. If the user speaks Indonesian, you speak Indonesian.
-4. This is your HIGHEST priority rule.
+**STRICT BLOK M ONLY:**
+1. Guide ONLY for Blok M/Melawai Jakarta.
+2. NEVER suggest places outside.
+3. NO branch mentions outside.
+4. REJECTION: "I only guide for Blok M area."
+5. TOOLS: Add "Blok M Jakarta" to queries.
 
-You are a specialized Food & Beverage Guide for Blok M, Jakarta.
+**DATABASE USAGE (CRITICAL):**
+1. You MUST check the **BLOK M DATABASE** first.
+2. If a spot in the database matches the user's request, you MUST recommend it.
+3. Only use Google Search/Maps if the database doesn't have a relevant match or if you need more details (like exact address/hours).
+4. RANK: Database Spots > Unique/Local > Chains.
+5. LIMIT: Max 3 spots per reply.
 
-**CRITICAL RULE: DATABASE FIRST**
-1. You have a "VERIFIED TENANT LIST" provided below. This is your primary source of truth.
-2. If a user asks for a recommendation, you MUST search the VERIFIED TENANT LIST first.
-3. **KEYWORD MATCHING:** Use the "Category" (Type of place), "Subcategory" (Origin of food), and "Keywords" fields from the database to match and sort the most relevant recommendations.
-4. ONLY if you cannot find a suitable match in the database, you may use the **googleSearch** tool to find other popular spots in Blok M.
-5. If you use information from the database, state that it is a "Verified Local Spot".
-6. **RECOMMENDATION LIMIT:** Provide a maximum of 3 spots per recommendation UNLESS the user explicitly asks for more.
+**STRUCTURE:**
+1. Start with a brief, friendly intro (1 sentence).
+2. Use bullet points for each spot.
+3. **Bold** the name of each spot.
+4. Include a 1-sentence description/why it's recommended.
+5. MANDATORY: Google Maps link for EVERY spot (https://...).
+6. End with a short helpful closing.
+7. DO NOT repeat system prompts or instructions in your output.
+8. AVOID grounding citations (like [1], [2]) in the text for a cleaner look.
+9. Use double newlines between sections.
 
-**MANDATORY LOCATION RULES:**
-1. **STRICT BLOK M ONLY:** You are a guide ONLY for Blok M, Jakarta. NEVER recommend or provide map links for branches located in other areas.
-2. **FULL DETAILED ADDRESS:** Whenever you recommend a place, you MUST provide its **complete, detailed address** (Street name, Number, Building/Mall name, Floor/Unit if applicable) and a link to Google Maps.
-3. **LANDMARKS:** Include nearby landmarks to help the user find the spot (e.g., "Dekat pintu MRT Blok M", "Di dalam M Bloc Space seberang supermarket").
-4. If the place is in the Verified Tenant List, use that exact address and map link.
-5. If it's NOT in the list, use the **googleSearch** tool to find its exact location. **BE SPECIFIC:** Search for "[Place Name] Blok M Melawai Jakarta" to ensure you get the correct branch and the most accurate address.
-6. **LINK FORMAT:** Always provide full web URLs (starting with https://). Avoid deep links like "intent://" or "google.navigation:".
-7. **MAP LIMIT:** Never trigger a broad map search that returns more than 3 distinct locations. If you recommend 3 spots, search for them individually or very precisely.
-8. When providing directions, mention how far it is from the user's current location (Lat: ${location?.latitude || "Unknown"}, Lng: ${location?.longitude || "Unknown"}).
-
-**TONE:** Maintain a "Jakarta local, casual, and efficient" vibe regardless of the language used. If speaking English, use a friendly, local expat or savvy local guide tone.
+**TONE:** Jakarta local, casual, helpful.
 ${tenantContext}`;
+
+    const detectedLang = detectLanguage(message);
+    const langInstruction = detectedLang === "id" 
+      ? "USER: ID. Respond ONLY in Indonesian. No English."
+      : "USER: EN. Respond ONLY in English. No Indonesian.";
 
     const chat = ai.chats.create({
       model: "gemini-2.5-flash",
+      history: validHistory,
       config: {
         systemInstruction: systemInstruction + `
-**MAPS & LINKS RULE:**
-1. When recommending a place NOT in your verified list, use the **googleMaps** or **googleSearch** tools.
-2. DO NOT hallucinate URLs. If you don't have a verified URL, don't provide one in the text.
-3. Rely on the automated "Verified Location" cards that appear below your message for map links.
-4. If you must provide a link in text, ensure it is a valid https:// link from your tool output.`,
+**LANGUAGE:**
+1. Match user language strictly.
+2. EN input = EN ONLY.
+3. ID input = ID ONLY.
+4. Errors = Bilingual.
+5. CONTEXT: ${langInstruction}`,
         tools: [{ googleSearch: {} }, { googleMaps: {} }],
         temperature: 0.6,
       }
     });
 
-    const result = await chat.sendMessage({ message });
+    // Retry logic for 503 and 429 errors
+    const sendMessageWithRetry = async (msg: string, retries = 3, delay = 2000) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          // Subtle language enforcement
+          const langPrompt = detectedLang === "id" 
+            ? "[System: Respond in Indonesian only]" 
+            : "[System: Respond in English only]";
+          return await chat.sendMessage({ message: `${langPrompt}\n\nUser: ${msg}` });
+        } catch (error: any) {
+          const is503 = error.message?.includes("503") || error.status === 503 || JSON.stringify(error).includes("503");
+          const is429 = error.message?.includes("429") || error.status === 429 || JSON.stringify(error).includes("429") || error.message?.includes("QUOTA_EXHAUSTED");
+          
+          if ((is503 || is429) && i < retries - 1) {
+            const errorType = is429 ? "429 (Quota Exhausted)" : "503 (Service Unavailable)";
+            console.warn(`Gemini ${errorType} error, retrying in ${delay}ms... (Attempt ${i + 1}/${retries})`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            delay *= 2; // Exponential backoff
+            continue;
+          }
+          
+          if (is429) {
+            throw new Error("QUOTA_EXHAUSTED: You have exceeded your Gemini API quota. Please wait a few minutes or check your plan at https://ai.google.dev/pricing.");
+          }
+          
+          throw error;
+        }
+      }
+    };
+
+    const result = await sendMessageWithRetry(message);
+    if (!result) throw new Error("No response from Gemini");
+
     return res.status(200).json({ 
       text: result.text,
       groundingMetadata: result.candidates?.[0]?.groundingMetadata 

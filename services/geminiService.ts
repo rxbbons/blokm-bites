@@ -13,7 +13,7 @@ export class GeminiService {
     this.tenants = tenants;
   }
 
-  async *sendMessageStream(message: string, location?: LocationCoords) {
+  async *sendMessageStream(message: string, history: any[] = [], location?: LocationCoords) {
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -22,6 +22,7 @@ export class GeminiService {
         },
         body: JSON.stringify({
           message,
+          history,
           tenants: this.tenants,
           location,
         }),

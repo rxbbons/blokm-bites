@@ -58,7 +58,19 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             <div className="flex flex-col gap-3 w-full mt-1">
               {/* Integrated Map Embeds */}
               {message.groundingMetadata.groundingChunks
-                .filter(chunk => !!chunk.maps?.uri || (chunk.web?.title?.toLowerCase().includes('maps')))
+                .filter(chunk => {
+                  const title = (chunk.maps?.title || chunk.web?.title || "").toLowerCase();
+                  const uri = (chunk.maps?.uri || chunk.web?.uri || "").toLowerCase();
+                  
+                  // Forbidden areas that often pop up
+                  const forbidden = ['senopati', 'kemang', 'sudirman', 'scbd', 'menteng', 'pik', 'bsd', 'bintaro'];
+                  const isForbidden = forbidden.some(area => title.includes(area) || uri.includes(area));
+                  
+                  // Must be relevant to Blok M or at least not forbidden
+                  const isRelevant = !!chunk.maps?.uri || (chunk.web?.title?.toLowerCase().includes('maps'));
+                  
+                  return isRelevant && !isForbidden;
+                })
                 .slice(0, 3)
                 .map((chunk, idx) => {
                   const rawTitle = chunk.maps?.title || chunk.web?.title || "Blok M Spot";
@@ -111,7 +123,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                   return (
                     <div key={`map-container-${idx}`} className="flex flex-col gap-0 bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                       {/* Map Embed - Clickable overlay to open full map */}
-                      <div className="w-full h-44 bg-gray-100 relative group">
+                      <div className="w-full h-32 md:h-44 bg-gray-100 relative group">
                         <iframe
                           title={`Map for ${title}`}
                           width="100%"
@@ -135,28 +147,28 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                       </div>
                       
                       {/* Action Bar */}
-                      <div className="p-3 flex items-center justify-between bg-white border-t border-gray-100">
+                      <div className="p-2 md:p-3 flex items-center justify-between bg-white border-t border-gray-100">
                         <a 
                           href={destinationUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2 overflow-hidden mr-2 hover:opacity-80 transition-opacity"
+                          className="flex items-center gap-1.5 md:gap-2 overflow-hidden mr-2 hover:opacity-80 transition-opacity"
                         >
-                          <div className="bg-blue-50 p-1.5 rounded-lg text-blue-600 flex-shrink-0">
-                            <MapPin size={16} />
+                          <div className="bg-blue-50 p-1 md:p-1.5 rounded-lg text-blue-600 flex-shrink-0">
+                            <MapPin size={14} className="md:w-4 md:h-4" />
                           </div>
                           <div className="flex flex-col overflow-hidden">
-                            <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wider leading-none mb-0.5">Verified Location</span>
-                            <span className="text-sm font-bold text-gray-800 truncate">{title}</span>
+                            <span className="text-[8px] md:text-[10px] font-bold text-blue-800 uppercase tracking-wider leading-none mb-0.5">Verified Location</span>
+                            <span className="text-xs md:text-sm font-bold text-gray-800 truncate">{title}</span>
                           </div>
                         </a>
                         <a
                           href={destinationUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95 whitespace-nowrap"
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 md:px-3 md:py-2 rounded-xl text-[10px] md:text-xs font-bold flex items-center gap-1 md:gap-1.5 transition-all shadow-sm active:scale-95 whitespace-nowrap"
                         >
-                          <Navigation size={12} />
+                          <Navigation size={10} className="md:w-3 md:h-3" />
                           Directions
                         </a>
                       </div>

@@ -30,11 +30,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [messages, isLoading, suggestions]);
 
   return (
-    <div className="flex flex-col h-full bg-white relative pt-16"> {/* pt-16 to account for fixed header */}
+    <div className="flex flex-col h-full bg-white relative">
       
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar w-full pb-52"> {/* Increased padding for taller footer */}
-        <div className="max-w-4xl mx-auto px-4 py-8 space-y-8 w-full">
+      <div className="flex-1 overflow-y-auto custom-scrollbar w-full pb-32 md:pb-40">
+        <div className="max-w-4xl mx-auto px-3 md:px-4 py-4 md:py-8 space-y-6 md:space-y-8 w-full">
           {messages.map((msg) => (
             <MessageBubble key={msg.id} message={msg} />
           ))}
@@ -55,13 +55,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       </div>
 
       {/* Floating Input Section */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-white via-white via-90% to-transparent pt-12 pb-6 px-4 pointer-events-none">
-        <div className="max-w-3xl mx-auto flex flex-col gap-3 pointer-events-auto">
+      <div className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-white via-white via-80% to-transparent pt-8 pb-2 md:pb-6 px-2 md:px-4 pointer-events-none">
+        <div className="max-w-3xl mx-auto flex flex-col gap-2 md:gap-3 pointer-events-auto">
           
-          {/* Error Message & Test Button */}
+          {/* Error Message */}
           {error && (
-              <div className="flex flex-col items-center gap-2 mb-2 animate-slide-up">
-                  <div className="bg-red-50 text-red-600 text-[11px] px-3 py-2 rounded-lg border border-red-100 shadow-sm w-full text-center font-medium">
+              <div className="flex flex-col items-center gap-2 mb-1 animate-slide-up">
+                  <div className="bg-red-50 text-red-600 text-[10px] md:text-[11px] px-3 py-2 rounded-lg border border-red-100 shadow-sm w-full text-center font-medium">
                       {error}
                   </div>
                   <button 
@@ -70,50 +70,41 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       e.stopPropagation();
                       try {
                         const res = await fetch("/api/test-gemini");
-                        const contentType = res.headers.get("content-type");
-                        if (!contentType || !contentType.includes("application/json")) {
-                          const text = await res.text();
-                          alert(`❌ Server Error (HTML Response):\n\n${text.substring(0, 300)}...\n\nThis usually means the Vercel Serverless Function crashed. Check Vercel Logs.`);
-                          return;
-                        }
                         const data = await res.json();
-                        if (data.status === "success") {
-                          alert(`✅ Connection Success!\n\nAI Response: ${data.response}\n\nDB Status: ${data.mongoInfo.status}\n\nKey Info:\n- Masked: ${data.keyInfo.masked}\n- Length: ${data.keyInfo.length}\n- StartsWithAIza: ${data.keyInfo.startsWithAIza}\n- IsValidASCII: ${data.keyInfo.isAscii}`);
-                        } else {
-                          alert(`❌ Connection Failed!\n\nAI Error: ${data.message}\n\nDB Status: ${data.mongoInfo.status}\nDB Error: ${data.mongoInfo.error || "None"}\n\nKey Info:\n- Masked: ${data.keyInfo.masked}\n- Length: ${data.keyInfo.length}\n- Exists: ${data.keyInfo.exists}\n- IsValidASCII: ${data.keyInfo.isAscii}\n\nDetails: ${JSON.stringify(data.details)}`);
-                        }
+                        alert(data.status === "success" ? "✅ Connection Success!" : "❌ Connection Failed: " + data.message);
                       } catch (e: any) {
                         alert("Test Request Failed: " + e.message);
                       }
                     }}
-                    className="text-[10px] bg-red-600 text-white px-4 py-1.5 rounded-full hover:bg-red-700 transition-all shadow-md font-bold uppercase tracking-wider active:scale-95 cursor-pointer relative z-50"
+                    className="text-[9px] bg-red-600 text-white px-3 py-1 rounded-full hover:bg-red-700 transition-all shadow-md font-bold uppercase tracking-wider active:scale-95 cursor-pointer"
                   >
-                    Test API Connection
+                    Test API
                   </button>
               </div>
           )}
 
-          {/* Main Input */}
-          <InputArea onSend={onSendMessage} isLoading={isLoading} />
-
-          {/* Quick Replies (Styled like WelcomeScreen Cards) */}
+          {/* Quick Replies (Horizontal Scroll on Mobile) */}
           {!isLoading && suggestions.length > 0 && (
-             <div className="flex items-center gap-3 overflow-x-auto pb-2 pt-1 scrollbar-hide mask-fade-sides snap-x">
+             <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-1 scrollbar-hide mask-fade-sides snap-x no-scrollbar">
                {suggestions.map((suggestion, idx) => (
                 <button
                   key={idx}
                   onClick={() => onSendMessage(suggestion)}
-                  className="flex-shrink-0 snap-start bg-white border border-gray-100 text-gray-700 hover:border-brand-200 hover:bg-brand-50 px-5 py-3 rounded-xl text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md group flex items-center gap-3 min-w-[160px] justify-between"
+                  className="flex-shrink-0 snap-start bg-white border border-gray-200 text-gray-700 hover:border-brand-200 hover:bg-brand-50 px-4 py-2.5 md:px-5 md:py-3 rounded-xl text-xs md:text-sm font-bold transition-all duration-200 shadow-sm hover:shadow-md group flex items-center gap-2 md:gap-3 min-w-[140px] md:min-w-[160px] justify-between active:scale-95"
                 >
-                  <span className="truncate max-w-[200px]">{suggestion}</span>
+                  <span className="truncate max-w-[150px] md:max-w-[200px]">{suggestion}</span>
                   <span className="text-brand-300 group-hover:text-brand-500 group-hover:translate-x-1 transition-all duration-200">→</span>
                 </button>
               ))}
              </div>
           )}
+
+          {/* Main Input */}
+          <InputArea onSend={onSendMessage} isLoading={isLoading} />
           
-          <p className="text-center text-[10px] text-gray-400 font-medium">
-             AI can make mistakes. Please verify official opening hours.
+          <p className="text-center text-[9px] md:text-[10px] text-gray-400 font-medium pb-1 flex flex-col items-center">
+             <span>AI can make mistakes. Please verify official opening hours.</span>
+             <span>This chatbot is designed for the Blok M area and has limited database.</span>
           </p>
         </div>
       </div>
