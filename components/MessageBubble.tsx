@@ -122,55 +122,38 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                   
                   return (
                     <div key={`map-container-${idx}`} className="flex flex-col gap-0 bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                      {/* Map Embed - Clickable overlay to open full map */}
-                      <div className="w-full h-32 md:h-44 bg-gray-100 relative group">
-                        <iframe
-                          title={`Map for ${title}`}
-                          width="100%"
-                          height="100%"
-                          style={{ border: 0 }}
-                          src={embedUrl}
-                          loading="lazy"
-                        ></iframe>
-                        <a 
-                          href={destinationUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center"
-                          title="Open in Google Maps"
-                        >
-                          <div className="bg-white/90 px-3 py-1.5 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-bold text-gray-700 flex items-center gap-1">
-                            <ExternalLink size={10} />
-                            Open Full Map
-                          </div>
-                        </a>
-                      </div>
-                      
-                      {/* Action Bar */}
-                      <div className="p-2 md:p-3 flex items-center justify-between bg-white border-t border-gray-100">
-                        <a 
-                          href={destinationUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 md:gap-2 overflow-hidden mr-2 hover:opacity-80 transition-opacity"
-                        >
-                          <div className="bg-blue-50 p-1 md:p-1.5 rounded-lg text-blue-600 flex-shrink-0">
-                            <MapPin size={14} className="md:w-4 md:h-4" />
+                      {/* Action Bar - Simplified to just buttons/links */}
+                      <div className="p-3 md:p-4 flex flex-col gap-3 bg-white">
+                        <div className="flex items-center gap-3">
+                          <div className="bg-orange-50 p-2 rounded-xl text-orange-600 flex-shrink-0 shadow-sm border border-orange-100">
+                            <MapPin size={18} className="md:w-5 md:h-5" />
                           </div>
                           <div className="flex flex-col overflow-hidden">
-                            <span className="text-[8px] md:text-[10px] font-bold text-blue-800 uppercase tracking-wider leading-none mb-0.5">Verified Location</span>
-                            <span className="text-xs md:text-sm font-bold text-gray-800 truncate">{title}</span>
+                            <span className="text-[9px] md:text-[10px] font-bold text-orange-800 uppercase tracking-widest leading-none mb-1">Verified Location</span>
+                            <span className="text-sm md:text-base font-bold text-gray-900 truncate">{title}</span>
                           </div>
-                        </a>
-                        <a
-                          href={destinationUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 md:px-3 md:py-2 rounded-xl text-[10px] md:text-xs font-bold flex items-center gap-1 md:gap-1.5 transition-all shadow-sm active:scale-95 whitespace-nowrap"
-                        >
-                          <Navigation size={10} className="md:w-3 md:h-3" />
-                          Directions
-                        </a>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 w-full">
+                          <a 
+                            href={destinationUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-xl text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-sm active:scale-95 whitespace-nowrap"
+                          >
+                            <Navigation size={14} className="md:w-4 md:h-4" />
+                            Open in Maps
+                          </a>
+                          <a
+                            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(finalSearchQuery)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 bg-white border border-gray-200 hover:border-orange-200 hover:bg-orange-50 text-gray-700 hover:text-orange-700 px-4 py-2.5 rounded-xl text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-sm active:scale-95 whitespace-nowrap"
+                          >
+                            <ExternalLink size={14} className="md:w-4 md:h-4" />
+                            Directions
+                          </a>
+                        </div>
                       </div>
                     </div>
                   );

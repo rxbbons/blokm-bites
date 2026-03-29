@@ -29,9 +29,6 @@ export default function App() {
   const [dbStatus, setDbStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
   const [tenantCount, setTenantCount] = useState(0);
   const [suggestions, setSuggestions] = useState<string[]>(INITIAL_SUGGESTIONS);
-  const [showMap, setShowMap] = useState(true);
-  const [mapMarkers, setMapMarkers] = useState<any[]>([]);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([-6.2444, 106.8018]);
   
   const geminiServiceRef = useRef<GeminiService | null>(null);
   const dbServiceRef = useRef<DatabaseService | null>(null);
@@ -159,30 +156,7 @@ export default function App() {
       }
       
       setChatState(prev => ({ ...prev, isLoading: false }));
-      setSuggestions(["Show on map 🗺️", "Opening hours ⏰", "Get directions 🚗"]);
-
-      // Extract markers from grounding metadata if available
-      if (finalMetadata?.groundingChunks) {
-        const newMarkers = finalMetadata.groundingChunks
-          .filter((chunk: any) => chunk.maps?.uri && chunk.maps?.title)
-          .map((chunk: any, idx: number) => {
-            // Since we don't have lat/lng directly from groundingChunks usually, 
-            // we'd need to search or use a placeholder near Blok M for now.
-            // For a real app, we'd use a Geocoding API or the Maps grounding would provide it.
-            // For now, let's just place them slightly offset from Blok M center for visibility.
-            return {
-              id: `marker-${idx}-${Date.now()}`,
-              position: [-6.2444 + (Math.random() - 0.5) * 0.005, 106.8018 + (Math.random() - 0.5) * 0.005],
-              title: chunk.maps.title,
-              description: "Found via Google Maps"
-            };
-          });
-        
-        if (newMarkers.length > 0) {
-          setMapMarkers(newMarkers);
-          setMapCenter(newMarkers[0].position);
-        }
-      }
+      setSuggestions(["What's Viral? / Apa yang Viral?", "Best Coffee / Kopi Terbaik ☕", "Japanese Food / Makanan Jepang 🍜"]);
 
     } catch (err: any) {
       console.error("Chat error:", err);
@@ -203,12 +177,14 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-full bg-gray-50">
-      <Header dbStatus={dbStatus} tenantCount={tenantCount} />
+    <div className="flex flex-col h-[100dvh] w-full bg-gray-50 overflow-hidden">
+      <div className="flex-shrink-0">
+        <Header dbStatus={dbStatus} tenantCount={tenantCount} />
+      </div>
       
-      <main className="flex-1 overflow-hidden relative flex flex-col md:flex-row">
+      <main className="flex-1 overflow-hidden relative flex flex-col">
         {/* Chat Section */}
-        <section className={`flex-1 flex flex-col transition-all duration-300 ${showMap ? 'md:w-2/3' : 'w-full'}`}>
+        <section className="flex-1 flex flex-col">
           <ChatInterface 
             messages={chatState.messages} 
             isLoading={chatState.isLoading} 
@@ -217,51 +193,6 @@ export default function App() {
             suggestions={suggestions}
           />
         </section>
-
-        {/* Map Section - Mobile Friendly Toggle */}
-        <section className={`
-          ${showMap 
-            ? 'fixed inset-0 z-50 md:relative md:inset-auto md:h-full md:w-1/3 md:flex md:flex-col border-t md:border-t-0 md:border-l' 
-            : 'hidden md:hidden'} 
-          bg-white transition-all duration-300
-        `}>
-          <div className="absolute top-4 right-4 z-[1000] md:hidden">
-            <button 
-              onClick={() => setShowMap(false)}
-              className="p-3 bg-white rounded-full shadow-2xl hover:bg-gray-100 border border-gray-200 active:scale-95 transition-transform"
-            >
-              <MessageSquare className="w-6 h-6 text-brand-600" />
-            </button>
-          </div>
-          <div className="h-full p-3 md:p-4 flex flex-col">
-            <div className="flex items-center justify-between mb-2 md:mb-3">
-              <h2 className="text-sm font-bold text-gray-700 flex items-center gap-2">
-                <MapIcon className="w-4 h-4 text-brand-500" />
-                Blok M Explorer
-              </h2>
-              <button 
-                onClick={() => setShowMap(false)}
-                className="text-xs font-bold text-gray-400 hover:text-gray-600 hidden md:block px-2 py-1 rounded-md hover:bg-gray-50"
-              >
-                Hide Map
-              </button>
-            </div>
-            <div className="flex-1 min-h-0 rounded-xl overflow-hidden border border-gray-100 shadow-inner">
-              <MapComponent markers={mapMarkers} center={mapCenter} />
-            </div>
-          </div>
-        </section>
-
-        {/* Map Toggle Button (when hidden or on mobile) */}
-        {!showMap && (
-          <button 
-            onClick={() => setShowMap(true)}
-            className="fixed bottom-28 right-6 z-40 p-4 bg-brand-500 text-white rounded-full shadow-2xl hover:bg-brand-600 transition-all transform hover:scale-110 active:scale-90 flex items-center gap-2 border-2 border-white"
-          >
-            <MapIcon className="w-6 h-6" />
-            <span className="text-sm font-bold pr-1">Map</span>
-          </button>
-        )}
       </main>
     </div>
   );

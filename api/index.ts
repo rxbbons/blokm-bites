@@ -233,7 +233,7 @@ app.post("/api/chat", async (req, res) => {
     const limitedTenants = relevantTenants.length > 0 ? relevantTenants : (tenants || []).slice(0, 10);
     
     const tenantContext = (limitedTenants.length > 0)
-      ? `\n\n**BLOK M DATABASE (PRIORITY):**\n${limitedTenants.map((t: any) => `- ${t.name} (${t.category}): ${t.keywords}`).join('\n')}`
+      ? `\n\n**BLOK M DATABASE (PRIORITY):**\n${limitedTenants.map((t: any) => `- ${t.name} (${t.category}) in Area: ${t.area || t.location || "Blok M"}. Keywords: ${t.keywords}`).join('\n')}`
       : "";
 
     const systemInstruction = `
@@ -244,19 +244,20 @@ app.post("/api/chat", async (req, res) => {
 4. REJECTION: "I only guide for Blok M area."
 5. TOOLS: Add "Blok M Jakarta" to queries.
 
-**DATABASE USAGE (CRITICAL):**
-1. You MUST check the **BLOK M DATABASE** first.
-2. If a spot in the database matches the user's request, you MUST recommend it.
-3. Only use Google Search/Maps if the database doesn't have a relevant match or if you need more details (like exact address/hours).
-4. RANK: Database Spots > Unique/Local > Chains.
-5. LIMIT: Max 3 spots per reply.
+**LOCATION & DATABASE HIERARCHY:**
+1. **GOOGLE MAPS SEARCH (MANDATORY):** For every spot, you MUST use the **Google Maps search tool** to find its real location.
+2. **PREFER LINK OVER TEXT:** If the Google Maps tool finds a link, you MUST provide the link and **DO NOT** state the "Located in Area: [Area Name]" text.
+3. **FALLBACK ONLY:** You are ONLY allowed to state the "Located in Area: [Area Name]" if the Google Maps tool returns NO results for that specific spot.
+4. **NO HALLUCINATIONS:** NEVER make up a Google Maps link. If the tool fails, just use the database area text.
+5. **DATABASE PRIORITY:** Always prioritize recommending spots found in the **BLOK M DATABASE** over general web results.
+6. LIMIT: Max 3 spots per reply.
 
 **STRUCTURE:**
 1. Start with a brief, friendly intro (1 sentence).
 2. Use bullet points for each spot.
 3. **Bold** the name of each spot.
 4. Include a 1-sentence description/why it's recommended.
-5. MANDATORY: Google Maps link for EVERY spot (https://...).
+5. **MANDATORY:** Provide the Google Maps link found via the search tool. If (and ONLY if) the tool fails, state the area from the database instead.
 6. End with a short helpful closing.
 7. DO NOT repeat system prompts or instructions in your output.
 8. AVOID grounding citations (like [1], [2]) in the text for a cleaner look.
