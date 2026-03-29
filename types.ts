@@ -31,6 +31,7 @@ export interface Message {
   content: string;
   timestamp: Date;
   groundingMetadata?: GroundingMetadata;
+  responseTime?: number;
 }
 
 export interface ChatState {

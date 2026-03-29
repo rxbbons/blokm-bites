@@ -24,7 +24,7 @@ export const InputArea: React.FC<InputAreaProps> = ({ onSend, isLoading }) => {
   };
 
   return (
-    <div className="p-2 md:p-4">
+    <div className="p-1.5 md:p-4">
       <div className="relative flex items-center">
         <input
           type="text"
@@ -33,14 +33,14 @@ export const InputArea: React.FC<InputAreaProps> = ({ onSend, isLoading }) => {
           onKeyDown={handleKeyDown}
           placeholder="Ask about food in Blok M..."
           disabled={isLoading}
-          className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-base md:text-sm rounded-2xl md:rounded-full focus:ring-orange-500 focus:border-orange-500 block pl-4 md:pl-5 pr-12 py-3 md:py-3.5 outline-none transition-all disabled:opacity-50 placeholder:text-gray-400 shadow-sm"
+          className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm md:text-sm rounded-xl md:rounded-full focus:ring-orange-500 focus:border-orange-500 block pl-3.5 md:pl-5 pr-10 md:pr-12 py-2.5 md:py-3.5 outline-none transition-all disabled:opacity-50 placeholder:text-gray-400 shadow-sm"
         />
         <button
           onClick={handleSend}
           disabled={!input.trim() || isLoading}
-          className="absolute right-1.5 p-2.5 md:p-2 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 text-white rounded-xl md:rounded-full transition-all shadow-md active:scale-90"
+          className="absolute right-1 md:right-1.5 p-2 md:p-2 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 text-white rounded-lg md:rounded-full transition-all shadow-md active:scale-90"
         >
-          <Send size={18} className="md:w-4 md:h-4" />
+          <Send size={16} className="md:w-4 md:h-4" />
         </button>
       </div>
     </div>

@@ -136,6 +136,7 @@ export default function App() {
       const stream = geminiServiceRef.current!.sendMessageStream(text, history, location);
       let fullText = "";
       let finalMetadata: any = undefined;
+      const startTime = Date.now();
 
       for await (const chunk of stream) {
         if (chunk.text) fullText += chunk.text;
@@ -155,7 +156,20 @@ export default function App() {
         });
       }
       
-      setChatState(prev => ({ ...prev, isLoading: false }));
+      const endTime = Date.now();
+      const duration = (endTime - startTime) / 1000;
+
+      setChatState(prev => {
+        const newMessages = [...prev.messages];
+        const targetIndex = newMessages.findIndex(m => m.id === aiMsgId);
+        if (targetIndex !== -1) {
+          newMessages[targetIndex] = {
+            ...newMessages[targetIndex],
+            responseTime: Number(duration.toFixed(1))
+          };
+        }
+        return { ...prev, messages: newMessages, isLoading: false };
+      });
       setSuggestions(["What's Viral? / Apa yang Viral?", "Best Coffee / Kopi Terbaik ☕", "Japanese Food / Makanan Jepang 🍜"]);
 
     } catch (err: any) {
@@ -182,9 +196,9 @@ export default function App() {
         <Header dbStatus={dbStatus} tenantCount={tenantCount} />
       </div>
       
-      <main className="flex-1 overflow-hidden relative flex flex-col">
+      <main className="flex-1 min-h-0 overflow-hidden relative flex flex-col">
         {/* Chat Section */}
-        <section className="flex-1 flex flex-col">
+        <section className="flex-1 min-h-0 flex flex-col">
           <ChatInterface 
             messages={chatState.messages} 
             isLoading={chatState.isLoading} 

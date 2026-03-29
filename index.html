@@ -56,8 +56,11 @@
       ::-webkit-scrollbar-thumb:hover {
         background: #94a3b8;
       }
+      .custom-scrollbar {
+        /* scrollbar-gutter: stable; */
+      }
       body {
-        overscroll-behavior: none;
+        /* overscroll-behavior: none; */
       }
     </style>
   <script type="importmap">
@@ -74,8 +77,8 @@
 </script>
 <link rel="stylesheet" href="/index.css">
 </head>
-  <body class="bg-gray-50 text-gray-900 h-[100dvh] overflow-hidden selection:bg-brand-100 selection:text-brand-900">
-    <div id="root" class="h-full"></div>
+  <body class="bg-gray-50 text-gray-900 h-[100dvh] selection:bg-brand-100 selection:text-brand-900">
+    <div id="root" class="h-full overflow-hidden"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
 </html>

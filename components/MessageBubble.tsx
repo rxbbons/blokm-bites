@@ -16,16 +16,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       <div className={`flex max-w-[85%] gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
         
         {/* Avatar */}
-        <div className={`flex-shrink-0 h-8 w-8 flex items-center justify-center mt-1 rounded-full shadow-sm ${
+        <div className={`flex-shrink-0 h-7 w-7 md:h-8 md:w-8 flex items-center justify-center mt-0.5 md:mt-1 rounded-full shadow-sm ${
           isUser ? 'bg-orange-100 text-orange-600' : 'bg-white border border-gray-100 text-orange-500'
         }`}>
-          {isUser ? <User size={16} /> : <Bot size={16} />}
+          {isUser ? <User size={14} className="md:w-4 md:h-4" /> : <Bot size={14} className="md:w-4 md:h-4" />}
         </div>
 
         {/* Bubble */}
-        <div className={`flex flex-col gap-2 ${isUser ? 'items-end' : 'items-start'}`}>
+        <div className={`flex flex-col gap-1 md:gap-2 ${isUser ? 'items-end' : 'items-start'}`}>
           <div
-            className={`px-5 py-3 shadow-sm text-sm leading-relaxed ${
+            className={`px-3.5 py-2 md:px-5 md:py-3 shadow-sm text-xs md:text-sm leading-relaxed ${
               isUser
                 ? 'bg-orange-500 text-white rounded-2xl rounded-tr-none'
                 : 'bg-white text-gray-800 border border-gray-100 rounded-2xl rounded-tl-none'
@@ -52,6 +52,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
               </div>
             )}
           </div>
+
+          {/* Response Time */}
+          {!isUser && message.responseTime !== undefined && (
+            <span className="text-[9px] md:text-[10px] text-gray-400 font-medium ml-1">
+              responded in {message.responseTime}s
+            </span>
+          )}
 
           {/* Integrated Map & Grounding Links */}
           {!isUser && message.groundingMetadata?.groundingChunks && (

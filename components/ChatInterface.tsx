@@ -30,11 +30,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [messages, isLoading, suggestions]);
 
   return (
-    <div className="flex flex-col h-full bg-white relative overflow-hidden">
+    <div className="flex flex-col h-full bg-white relative">
       
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto overscroll-behavior-contain touch-pan-y custom-scrollbar w-full pb-32 md:pb-40">
-        <div className="max-w-4xl mx-auto px-3 md:px-4 py-4 md:py-8 space-y-6 md:space-y-8 w-full">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-behavior-contain touch-pan-y custom-scrollbar w-full pb-28 md:pb-40 scroll-smooth z-10">
+        <div className="max-w-4xl mx-auto px-2 md:px-4 pt-4 pb-8 md:py-8 space-y-4 md:space-y-8 w-full">
           {messages.map((msg) => (
             <MessageBubble key={msg.id} message={msg} />
           ))}
@@ -55,8 +55,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       </div>
 
       {/* Floating Input Section */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-white via-white via-70% to-transparent pt-4 pb-1 md:pb-4 px-1 md:px-4 pointer-events-none">
-        <div className="max-w-3xl mx-auto flex flex-col gap-1 md:gap-2 pointer-events-auto">
+      <div className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-white via-white via-70% to-transparent pt-2 pb-0.5 md:pb-4 px-1 md:px-4 pointer-events-none">
+        <div className="max-w-3xl mx-auto flex flex-col gap-0.5 md:gap-2 pointer-events-auto">
           
           {/* Error Message */}
           {error && (
