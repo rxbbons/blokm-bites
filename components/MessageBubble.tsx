@@ -1,6 +1,7 @@
 
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Message } from '../types';
 import { Bot, User, ExternalLink, MapPin, Navigation } from 'lucide-react';
 
@@ -36,6 +37,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             ) : (
               <div className="prose prose-sm prose-orange max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-li:my-0">
                 <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
                   components={{
                     a: ({ node, ...props }) => (
                       <a 

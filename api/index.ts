@@ -257,7 +257,7 @@ app.post("/api/chat", async (req, res) => {
 2. Use bullet points for each spot.
 3. **Bold** the name of each spot.
 4. Include a 1-sentence description/why it's recommended.
-5. **MANDATORY:** Provide the Google Maps link found via the search tool. If (and ONLY if) the tool fails, state the area from the database instead.
+5. **MANDATORY:** Provide the Google Maps link found via the search tool using Markdown format: **[Google Maps](url)**. If (and ONLY if) the tool fails, state the area from the database instead.
 6. End with a short helpful closing.
 7. DO NOT repeat system prompts or instructions in your output.
 8. AVOID grounding citations (like [1], [2]) in the text for a cleaner look.
