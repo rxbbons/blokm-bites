@@ -24,7 +24,7 @@ export const Header: React.FC<HeaderProps> = ({ dbStatus = 'idle', tenantCount =
                 {dbStatus === 'error' && <AlertCircle size={7} className="text-red-500 md:w-2.5 md:h-2.5" />}
                 <span className="text-[8px] md:text-[10px] font-semibold text-gray-500 flex items-center gap-1">
                   <Database size={7} className="md:w-2.5 md:h-2.5" />
-                  {tenantCount} <span className="hidden xs:inline">F&B Tenants Verified</span>
+                  {tenantCount} F&B Tenants Verified
                 </span>
               </div>
             </div>

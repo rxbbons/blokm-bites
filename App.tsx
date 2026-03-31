@@ -174,11 +174,12 @@ export default function App() {
 
     } catch (err: any) {
       console.error("Chat error:", err);
-      let errorMsg = err.message || "Failed to connect to AI.";
+      let errorMsg = "The system is currently experiencing high usage. Please try again later.";
       
-      if (errorMsg.includes("API key not valid") || errorMsg.includes("API_KEY_INVALID")) {
+      const msg = err.message || "";
+      if (msg.includes("API key not valid") || msg.includes("API_KEY_INVALID")) {
         errorMsg = "⚠️ API Key Error: Please check your Vercel Environment Variables. Ensure GEMINI_API_KEY is copied exactly from AI Studio Settings > Secrets.";
-      } else if (errorMsg.includes("QUOTA_EXHAUSTED") || errorMsg.includes("429")) {
+      } else if (msg.includes("QUOTA_EXHAUSTED") || msg.includes("429")) {
         errorMsg = "⚠️ Quota Exceeded: You've reached the Gemini API limit for now. Please wait a few minutes before trying again, or check your API plan.";
       }
 

@@ -241,8 +241,9 @@ app.post("/api/chat", async (req, res) => {
 1. Guide ONLY for Blok M/Melawai Jakarta.
 2. NEVER suggest places outside.
 3. NO branch mentions outside.
-4. REJECTION: "I only guide for Blok M area."
-5. TOOLS: Add "Blok M Jakarta" to queries.
+4. **STRICT TOPIC LIMIT:** ONLY discuss food, drinks, and spots in Blok M.
+5. **REJECTION:** If asked about ANYTHING else (including your own history, chatbot history, general knowledge, or other areas), politely refuse: "I can only help with food and beverages related question in Blok M"
+6. TOOLS: Add "Blok M Jakarta" to queries.
 
 **LOCATION & DATABASE HIERARCHY:**
 1. **GOOGLE MAPS SEARCH (MANDATORY):** For every spot, you MUST use the **Google Maps search tool** to find its real location.
@@ -330,7 +331,7 @@ ${tenantContext}`;
     return res.status(200).json({ 
       error: error.message || "Failed to communicate with Gemini",
       isError: true,
-      text: "Maaf, sepertinya ada gangguan koneksi ke AI. Coba lagi sebentar ya! 🙏"
+      text: "The system is currently experiencing high usage. Please try again later."
     });
   }
 });
