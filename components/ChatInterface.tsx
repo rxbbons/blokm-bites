@@ -33,8 +33,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     <div className="flex flex-col h-full bg-white relative">
       
       {/* Messages Area */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-behavior-contain touch-pan-y custom-scrollbar w-full pb-28 md:pb-40 scroll-smooth z-10">
-        <div className="max-w-4xl mx-auto px-2 md:px-4 pt-4 pb-8 md:py-8 space-y-4 md:space-y-8 w-full">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-behavior-contain touch-pan-y custom-scrollbar w-full pb-24 md:pb-40 scroll-smooth z-10">
+        <div className="max-w-4xl mx-auto px-2 md:px-4 pt-2 pb-6 md:py-8 space-y-3 md:space-y-8 w-full">
           {messages.map((msg) => (
             <MessageBubble key={msg.id} message={msg} />
           ))}
@@ -90,7 +90,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 <button
                   key={idx}
                   onClick={() => onSendMessage(suggestion)}
-                  className="flex-shrink-0 snap-start bg-white border border-gray-200 text-gray-700 hover:border-brand-200 hover:bg-brand-50 px-4 py-2.5 md:px-5 md:py-3 rounded-xl text-xs md:text-sm font-bold transition-all duration-200 shadow-sm hover:shadow-md group flex items-center gap-2 md:gap-3 min-w-[140px] md:min-w-[160px] justify-between active:scale-95"
+                  className="flex-shrink-0 snap-start bg-white border border-gray-200 text-gray-700 hover:border-brand-200 hover:bg-brand-50 px-3 py-2 md:px-5 md:py-3 rounded-xl text-[11px] md:text-sm font-bold transition-all duration-200 shadow-sm hover:shadow-md group flex items-center gap-2 md:gap-3 min-w-[130px] md:min-w-[160px] justify-between active:scale-95"
                 >
                   <span className="truncate max-w-[150px] md:max-w-[200px]">{suggestion}</span>
                   <span className="text-brand-300 group-hover:text-brand-500 group-hover:translate-x-1 transition-all duration-200">→</span>
