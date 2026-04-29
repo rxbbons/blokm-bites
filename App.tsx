@@ -16,7 +16,7 @@ const INITIAL_MESSAGE: Message = {
 };
 
 const INITIAL_SUGGESTIONS = [
-  "What's Viral? / Apa yang Viral?", "Best Coffee / Kopi Terbaik ☕", "Japanese Food / Makanan Jepang 🍜", "Spots Nearby / Tempat Terdekat 📍"
+  "What food is viral in Blok M? / Makanan apa yang viral di Blok M?", "Best Coffee / Kopi Terbaik ☕", "Japanese Food / Makanan Jepang 🍜", "Spots Nearby / Tempat Terdekat 📍"
 ];
 
 export default function App() {
@@ -170,7 +170,7 @@ export default function App() {
         }
         return { ...prev, messages: newMessages, isLoading: false };
       });
-      setSuggestions(["What's Viral? / Apa yang Viral?", "Best Coffee / Kopi Terbaik ☕", "Japanese Food / Makanan Jepang 🍜"]);
+      setSuggestions(["What food is viral in Blok M? / Makanan apa yang viral di Blok M?", "Best Coffee / Kopi Terbaik ☕", "Japanese Food / Makanan Jepang 🍜"]);
 
     } catch (err: any) {
       console.error("Chat error:", err);
